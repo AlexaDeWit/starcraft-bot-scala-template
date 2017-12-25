@@ -1,8 +1,9 @@
 import bwapi.{Unit => ScUnit, _}
 import bwta.BWTA
+import scala.collection.JavaConverters._
 
 object TestBot {
-  def main(args: Array[String]) =
+  def main(args: Array[String]): Unit =
     new TestBot().run()
 }
 
@@ -12,7 +13,7 @@ class TestBot extends DefaultBWListener {
     var self: Player = _
 
     def run(): Unit = {
-        mirror.getModule().setEventListener(this)
+        mirror.getModule.setEventListener(this)
         mirror.startGame()
     }
 
@@ -35,8 +36,6 @@ class TestBot extends DefaultBWListener {
     override def onFrame(): Unit = {
       //game.setTextSize(10);
       game.drawTextScreen(10, 10, "Playing as " + self.getName + " - " + self.getRace)
-
-      import scala.collection.JavaConverters._
 
       self.getUnits.asScala
         .filter(_.getType == UnitType.Terran_Command_Center && self.minerals >= 50)
