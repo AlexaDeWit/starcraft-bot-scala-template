@@ -29,7 +29,7 @@ class TestBot extends DefaultBWListener {
         //This may take a few minutes if the map is processed first time!
         System.out.println("Analyzing map...")
         BWTA.readMap()
-        //BWTA.analyze()
+        BWTA.analyze()
         System.out.println("Map data ready")
     }
 
