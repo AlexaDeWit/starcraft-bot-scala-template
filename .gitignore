@@ -1,6 +1,7 @@
 /log
 *.class
 *.log
+*.dll
 #SBT
 .cache/
 .history/
