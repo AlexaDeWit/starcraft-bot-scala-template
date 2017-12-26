@@ -1,5 +1,7 @@
 import bwapi.{Unit => ScUnit, _}
 import bwta.BWTA
+import scalaz._
+import Scalaz._
 import scala.collection.JavaConverters._
 
 object TestBot {
@@ -31,6 +33,9 @@ class TestBot extends DefaultBWListener {
     BWTA.readMap()
     BWTA.analyze()
 
+    game.enableFlag(1) //Enables control of AI
+    game.setLocalSpeed(5) //20 is tournament speed
+
     System.out.println("Map data ready")
   }
 
@@ -52,8 +57,8 @@ class TestBot extends DefaultBWListener {
       })
   }
 
-  def getBuildTile(game: Game, buildingType: UnitType, searchStartPoint: TilePosition): Option[TilePosition] = {
-    val maxDist = 3
+  def getBuildTile(game: Game, buildingType: UnitType, builder: ScUnit, searchStartPoint: TilePosition): Option[TilePosition] = {
+    val maxDist = 6
     val stopDist = 40
     if(buildingType.isRefinery) {
       game
@@ -65,20 +70,34 @@ class TestBot extends DefaultBWListener {
         .find(u => Math.abs(u.getTilePosition.getY - searchStartPoint.getY) < stopDist)
         .map(_.getTilePosition)
     } else {
-      None
+      val xs = Range(searchStartPoint.getX - maxDist, searchStartPoint.getX + maxDist)
+      val ys = Range(searchStartPoint.getY - maxDist, searchStartPoint.getY + maxDist)
+      val ps = for {
+        x <- xs
+        y <- ys
+      } yield (x, y)
+      ps.filter(p => game.canBuildHere(new TilePosition(p._1, p._2), buildingType, builder, false))
+        .find( p => {
+          !game.getAllUnits.asScala.toList.any( (u: ScUnit) => {
+            (u.getID != builder.getID) && (Math.abs(u.getTilePosition.getX - p._1) < 4) && (Math.abs(u.getTilePosition.getY - p._2) < 4)
+          })
+        })
+        .map(p => new TilePosition(p._1, p._2))
     }
   }
 
-  def buildSupplyStructurs(game: Game, player: Player): Unit = {
+  def buildSupplyStructures(game: Game, player: Player): Unit = {
     if((player.supplyTotal() - player.supplyUsed() < 2) && player.minerals() >= 100) {
       val worker = player
         .getUnits
         .asScala
         .find(_.getType.isWorker)
-      val pair = for {
-        w <- worker
-        t <-  getBuildTile(game, UnitType.Protoss_Pylon, player.getStartLocation)
-      } yield (t, w)
+
+      val pair = worker.flatMap(w => {
+        val tile = getBuildTile(game, UnitType.Protoss_Pylon, w, player.getStartLocation)
+        if(tile.isDefined) System.out.println("Target tile found")
+        tile.map(t => (t, w))
+      })
       pair.foreach{ case (tile: TilePosition, unit: ScUnit) =>
           unit.build(UnitType.Protoss_Pylon, tile)
       }
@@ -95,7 +114,7 @@ class TestBot extends DefaultBWListener {
     self.getUnits.asScala.filter(u => !isNonCombatUnit(u))
 
     trainWorkers(self)
-    buildSupplyStructurs(game, self)
+    buildSupplyStructures(game, self)
 
     self.getUnits.asScala
       .filter(_.getType.isWorker)
