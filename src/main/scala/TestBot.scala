@@ -52,16 +52,33 @@ class TestBot extends DefaultBWListener {
       })
   }
 
-  def buildSupplyStructurs(player: Player): Unit = {
+  def getBuildTile(game: Game, buildingType: UnitType, searchStartPoint: TilePosition): Option[TilePosition] = {
+    val maxDist = 3
+    val stopDist = 40
+    if(buildingType.isRefinery) {
+      game
+        .neutral()
+        .getUnits
+        .asScala
+        .filter(_.getType == UnitType.Resource_Vespene_Geyser)
+        .filter(u => Math.abs(u.getTilePosition.getX - searchStartPoint.getX) < stopDist)
+        .find(u => Math.abs(u.getTilePosition.getY - searchStartPoint.getY) < stopDist)
+        .map(_.getTilePosition)
+    } else {
+      None
+    }
+  }
+
+  def buildSupplyStructurs(game: Game, player: Player): Unit = {
     if((player.supplyTotal() - player.supplyUsed() < 2) && player.minerals() >= 100) {
       val worker = player
         .getUnits
         .asScala
         .find(_.getType.isWorker)
-      val pair = worker.flatMap(u => {
-        val tile: TilePosition = ??? //getBuildTile(u, UnitType.Protoss_Pylon, player.getStartLocation)
-        Option((tile, u))
-      })
+      val pair = for {
+        w <- worker
+        t <-  getBuildTile(game, UnitType.Protoss_Pylon, player.getStartLocation)
+      } yield (t, w)
       pair.foreach{ case (tile: TilePosition, unit: ScUnit) =>
           unit.build(UnitType.Protoss_Pylon, tile)
       }
@@ -78,6 +95,7 @@ class TestBot extends DefaultBWListener {
     self.getUnits.asScala.filter(u => !isNonCombatUnit(u))
 
     trainWorkers(self)
+    buildSupplyStructurs(game, self)
 
     self.getUnits.asScala
       .filter(_.getType.isWorker)
