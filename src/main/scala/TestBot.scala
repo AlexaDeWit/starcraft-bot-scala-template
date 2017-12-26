@@ -8,43 +8,81 @@ object TestBot {
 }
 
 class TestBot extends DefaultBWListener {
-    val mirror = new Mirror()
-    var game: Game = _
-    var self: Player = _
+  val mirror = new Mirror()
+  var game: Game = _
+  var self: Player = _
 
-    def run(): Unit = {
-        mirror.getModule.setEventListener(this)
-        mirror.startGame()
+  def run(): Unit = {
+    mirror.getModule.setEventListener(this)
+    mirror.startGame()
+  }
+
+  override def onUnitCreate(unit: ScUnit): Unit = {
+    System.out.println("New unit " + unit.getType)
+  }
+
+  override def onStart(): Unit = {
+    game = mirror.getGame
+    self = game.self()
+
+    //Use BWTA to analyze map
+    //This may take a few minutes if the map is processed first time!
+    System.out.println("Analyzing map...")
+    BWTA.readMap()
+    BWTA.analyze()
+
+    System.out.println("Map data ready")
+  }
+
+
+  def trainWorkers(player: Player): Int = {
+    val maxWorkers = 15 * player.getUnits.asScala.count(_.getType == UnitType.Protoss_Nexus)
+    val workerCount = getWorkers(player).size
+    val targetWorkers = maxWorkers - workerCount
+    val potentialWorkers = player.minerals / 50
+    player
+      .getUnits
+      .asScala
+      .filter(u => u.getType == UnitType.Protoss_Nexus)
+      .filter(u => u.isIdle)
+      .take(Math.min(targetWorkers, potentialWorkers))
+      .foldRight(0)((u: ScUnit, i: Int) => {
+        u.train(UnitType.Protoss_Probe)
+        i + 1
+      })
+  }
+
+  def buildSupplyStructurs(player: Player): Unit = {
+    if((player.supplyTotal() - player.supplyUsed() < 2) && player.minerals() >= 100) {
+      val worker = player
+        .getUnits
+        .asScala
+        .find(_.getType.isWorker)
+      val pair = worker.flatMap(u => {
+        val tile: TilePosition = ??? //getBuildTile(u, UnitType.Protoss_Pylon, player.getStartLocation)
+        Option((tile, u))
+      })
+      pair.foreach{ case (tile: TilePosition, unit: ScUnit) =>
+          unit.build(UnitType.Protoss_Pylon, tile)
+      }
     }
+  }
 
-    override def onUnitCreate(unit: ScUnit): Unit = {
-        System.out.println("New unit " + unit.getType)
-    }
+  def getWorkers(player: Player): Iterable[ScUnit] = player.getUnits.asScala.filter(_.getType.isWorker)
 
-    override def onStart(): Unit = {
-        game = mirror.getGame
-        self = game.self()
+  def isNonCombatUnit(unit: ScUnit): Boolean = unit.getType.isWorker || unit.getType.isBuilding
 
-        //Use BWTA to analyze map
-        //This may take a few minutes if the map is processed first time!
-        System.out.println("Analyzing map...")
-        BWTA.readMap()
-        BWTA.analyze()
-        System.out.println("Map data ready")
-    }
+  override def onFrame(): Unit = {
+    //game.setTextSize(10);
+    game.drawTextScreen(10, 10, "Playing as " + self.getName + " - " + self.getRace)
+    self.getUnits.asScala.filter(u => !isNonCombatUnit(u))
 
-    override def onFrame(): Unit = {
-      //game.setTextSize(10);
-      game.drawTextScreen(10, 10, "Playing as " + self.getName + " - " + self.getRace)
+    trainWorkers(self)
 
-      self.getUnits.asScala
-        .filter(_.getType == UnitType.Terran_Command_Center && self.minerals >= 50)
-        .foreach(_.train(UnitType.Terran_SCV))
-
-      self.getUnits.asScala
-        .filter(_.getType.isWorker)
-        .filter(_.isIdle)
-        .foreach { worker =>
+    self.getUnits.asScala
+      .filter(_.getType.isWorker)
+      .filter(_.isIdle)
+      .foreach { worker =>
         val closestMineral = game.neutral.getUnits.asScala
           .filter(_.getType.isMineralField)
           .map(mineral => (mineral.getDistance(worker), mineral))
@@ -54,5 +92,5 @@ class TestBot extends DefaultBWListener {
 
         closestMineral.foreach(worker.gather)
       }
-    }
+  }
 }
