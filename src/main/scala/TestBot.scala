@@ -54,7 +54,7 @@ class TestBot extends DefaultBWListener {
 
   def buildArmy(player: Player, game: Game): Unit = {
     if (player.getUnits.asScala.count(isArmyUnit) < 200) {
-      trainUnit(UnitType.Terran_Barracks, UnitType.Terran_Marine)
+      trainUnit(UnitType.Protoss_Gateway, UnitType.Protoss_Zealot)
     }
   }
 
