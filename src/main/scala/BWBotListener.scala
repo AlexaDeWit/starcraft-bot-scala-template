@@ -65,6 +65,23 @@ class BWBotListener extends DefaultBWListener {
     System.out.println("New unit " + unit.getType)
   }
 
+  def assignMining: Unit = {
+    val currentlyGasMining = self.getUnits.asScala.filter(_.isGatheringGas)
+    val refineries = self.getUnits.asScala.filter(_.getType.isRefinery)
+    val neededGasGatherers = refineries.size * 3 -  currentlyGasMining.size
+    if(neededGasGatherers > 0) {
+      val minersToAdd = self.getUnits.asScala
+        .filter(u => u.isGatheringMinerals || u.isIdle)
+        .filterNot(u => builders.contains(u))
+        .take(neededGasGatherers)
+      val minersToGetGas = currentlyGasMining ++ minersToAdd
+      val bundled = refineries.toList zip minersToGetGas.grouped(3).toList
+      bundled.foreach( minerRefSet => {
+        minerRefSet._2.foreach(unit => unit.gather(minerRefSet._1))
+      })
+    }
+  }
+
   override def onStart(): Unit = {
     game = mirror.getGame
     self = game.self()
