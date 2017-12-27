@@ -95,14 +95,20 @@ object BehaviourFunctions {
   }
 
   def searchBuildableTile(game: Game, buildingType: UnitType, builder: ScUnit, searchStartPoint: TilePosition, maxDist: Int, skip: Int): Option[TilePosition] = {
-    val xs = Range(searchStartPoint.getX - skip, searchStartPoint.getX - maxDist) ++ Range(searchStartPoint.getX + skip, searchStartPoint.getX + maxDist)
-    val ys = Range(searchStartPoint.getY - skip, searchStartPoint.getY - maxDist) ++ Range(searchStartPoint.getY + skip, searchStartPoint.getY + maxDist)
-    val nrps = for {
-      x <- xs
-      y <- ys
-    } yield (x, y)
-    val ps = Random.shuffle(nrps).toList
-    println(ps)
+    val unskippedXS = Range(searchStartPoint.getX - maxDist, searchStartPoint.getX + maxDist)
+    val unskippedYS = Range(searchStartPoint.getY - maxDist, searchStartPoint.getY + maxDist)
+    val skippedXS = Range(searchStartPoint.getX - maxDist, searchStartPoint.getX - skip) ++ Range(searchStartPoint.getX + skip, searchStartPoint.getX + maxDist)
+    val skippedYS = Range(searchStartPoint.getY - maxDist, searchStartPoint.getY - skip) ++ Range(searchStartPoint.getY + skip, searchStartPoint.getY + maxDist)
+    val ys = for {
+      x <- unskippedXS
+      y <- skippedYS
+    } yield (x,y)
+    val xs = for {
+      x <- unskippedYS
+      y <- skippedXS
+    } yield (x,y)
+    val points = xs ++ ys
+    val ps = Random.shuffle(points).toList
     ps.filter(p => game.canBuildHere(new TilePosition(p._1, p._2), buildingType, builder, false))
       .find(p => {
         !game.getAllUnits.asScala.toList.any((u: ScUnit) => {
@@ -142,7 +148,7 @@ object BehaviourFunctions {
     Kleisli(gameState => {
       val player = gameState.player
       val game = gameState.game
-      if ((player.supplyTotal() - player.supplyUsed() < 2) && player.minerals() >= 100) {
+      if (/*(player.supplyTotal() - player.supplyUsed() < 2) &&*/ player.minerals() >= 100) {
         val worker = player
           .getUnits
           .asScala
@@ -150,7 +156,6 @@ object BehaviourFunctions {
 
         val pair = worker.flatMap(w => {
           val tile = getBuildTile(game, UnitType.Protoss_Pylon, w, player.getStartLocation)
-          if (tile.isDefined) System.out.println("Target tile found")
           tile.map(t => (t, w))
         })
         pair.foreach { case (tile: TilePosition, unit: ScUnit) =>
