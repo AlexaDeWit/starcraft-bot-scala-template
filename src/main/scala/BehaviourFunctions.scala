@@ -37,7 +37,7 @@ object BehaviourFunctions {
     //Unit Orders
 
     //Workers
-    trainWorkers(self).unsafePerformIO()
+    trainWorkers(player).unsafePerformIO()
     workerMine(player, game)
 
     buildingPrioritizing(player, game, List())
@@ -51,7 +51,7 @@ object BehaviourFunctions {
     }
   }
 
-  def getMyWorkers: List[ScUnit] = ???
+  def getMyWorkers(player: Player): List[ScUnit] = player.getUnits.asScala.filter(_.getType.isWorker).toList
 
   def designateABuilder(i: Int) = ???
 
@@ -66,7 +66,7 @@ object BehaviourFunctions {
   def buildingPrioritizing(player: Player, game: Game, builders: List[ScUnit]): Unit = {
     if (builders.isEmpty) {
       designateABuilder(1)
-    } else if (builders.size == 1 && getMyWorkers.size == 10) {
+    } else if (builders.size == 1 && getMyWorkers(player).size == 10) {
       designateABuilder(2)
     }
     val units = player.getUnits.asScala
