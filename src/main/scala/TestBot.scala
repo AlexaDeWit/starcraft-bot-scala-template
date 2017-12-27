@@ -54,7 +54,7 @@ class TestBot extends DefaultBWListener {
 
   def buildArmy(player: Player, game: Game): Unit = {
     if (player.getUnits.asScala.count(isArmyUnit) < 200) {
-      trainUnit(UnitType.Protoss_Gateway, UnitType.Protoss_Zealot)
+      trainUnit(player, UnitType.Protoss_Gateway, UnitType.Protoss_Zealot)
     }
   }
 
@@ -64,7 +64,8 @@ class TestBot extends DefaultBWListener {
 
   def buildStructure(game: Game, player: Player, unitType: UnitType) = ???
 
-  def trainUnit(unitType: UnitType, unitType1: UnitType) = ???
+  def trainUnit(player: Player, structure: UnitType, unit: UnitType) =
+    player.getUnits.asScala.filter(_.getType == UnitType.Protoss_Gateway).filter(_.isIdle).foreach(s => s.train(unit))
 
   def isArmyUnit(unit: ScUnit) = !(unit.getType.isWorker || unit.getType.isBuilding || unit.getType.isNeutral || unit.getType.isAddon)
 
