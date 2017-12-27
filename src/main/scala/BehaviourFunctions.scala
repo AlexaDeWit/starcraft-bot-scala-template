@@ -75,21 +75,38 @@ object BehaviourFunctions {
 
   def workerMine: Kleisli[IO, GameState, GameState] = {
     Kleisli( gameState => {
+      if(gameState.game.elapsedTime() < 10) {
+        workerSplit.run(gameState)
+      } else {
+        val player = gameState.player
+        val game = gameState.game
+        player.getUnits.asScala
+          .filter(_.getType.isWorker)
+          .filter(_.isIdle)
+          .foreach { worker =>
+            val closestMineral = game.neutral.getUnits.asScala
+              .filter(_.getType.isMineralField)
+              .map(mineral => (mineral.getDistance(worker), mineral))
+              .sortBy(_._1)
+              .map(_._2)
+              .headOption
+
+            closestMineral.foreach(worker.gather)
+          }
+        IO(gameState)
+      }
+    })
+  }
+
+  def workerSplit: Kleisli[IO, GameState, GameState] = {
+    Kleisli( gameState => {
       val player = gameState.player
       val game = gameState.game
-      player.getUnits.asScala
+      val workers = player.getUnits.asScala
         .filter(_.getType.isWorker)
         .filter(_.isIdle)
-        .foreach { worker =>
-          val closestMineral = game.neutral.getUnits.asScala
-            .filter(_.getType.isMineralField)
-            .map(mineral => (mineral.getDistance(worker), mineral))
-            .sortBy(_._1)
-            .map(_._2)
-            .headOption
-
-          closestMineral.foreach(worker.gather)
-        }
+      val minerals = Random.shuffle(game.neutral.getUnits.asScala.filter(_.getType.isMineralField))
+      (workers zip minerals).foreach{ case (worker, mineral) => worker.gather(mineral)}
       IO(gameState)
     })
   }

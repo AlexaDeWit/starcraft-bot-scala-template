@@ -65,7 +65,7 @@ class BWBotListener extends DefaultBWListener {
     System.out.println("New unit " + unit.getType)
   }
 
-  def assignMining: Unit = {
+  def assignGasGathering: Unit = {
     val currentlyGasMining = self.getUnits.asScala.filter(_.isGatheringGas)
     val refineries = self.getUnits.asScala.filter(_.getType.isRefinery)
     val neededGasGatherers = refineries.size * 3 -  currentlyGasMining.size
