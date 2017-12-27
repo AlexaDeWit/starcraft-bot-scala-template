@@ -48,7 +48,7 @@ object BehaviourFunctions {
   def buildStructure(game: Game, player: Player, buildingType: UnitType) = IO({
     val worker = designateABuilder
     val pair = worker.flatMap(w => {
-      val tile = getBuildTile(game, buildingType, w, player.getStartLocation)
+      val tile = getBuildTile(game, player, buildingType, w, player.getStartLocation)
       if (tile.isDefined) System.out.println("Target tile found")
       tile.map(t => (t, w))
     })
@@ -94,7 +94,7 @@ object BehaviourFunctions {
     })
   }
 
-  def searchBuildableTile(game: Game, buildingType: UnitType, builder: ScUnit, searchStartPoint: TilePosition, maxDist: Int, skip: Int): Option[TilePosition] = {
+  def searchBuildableTile(game: Game, player: Player, buildingType: UnitType, builder: ScUnit, searchStartPoint: TilePosition, maxDist: Int, skip: Int): Option[TilePosition] = {
     val unskippedXS = Range(searchStartPoint.getX - maxDist, searchStartPoint.getX + maxDist)
     val unskippedYS = Range(searchStartPoint.getY - maxDist, searchStartPoint.getY + maxDist)
     val skippedXS = Range(searchStartPoint.getX - maxDist, searchStartPoint.getX - skip) ++ Range(searchStartPoint.getX + skip, searchStartPoint.getX + maxDist)
@@ -108,22 +108,20 @@ object BehaviourFunctions {
       y <- skippedXS
     } yield (x,y)
     val points = xs ++ ys
-    val ps = Random.shuffle(points).toList
+    val ps = Random.shuffle(points)
     ps.filter(p => game.canBuildHere(new TilePosition(p._1, p._2), buildingType, builder, false))
       .find(p => {
-        !game.getAllUnits.asScala.toList.any((u: ScUnit) => {
-          (u.getID != builder.getID) && (Math.abs(u.getTilePosition.getX - p._1) < 3) && (Math.abs(u.getTilePosition.getY - p._2) < 3)
-        })
+        !player.getUnits.asScala.toVector.any(u => {(u.getID != builder.getID) && (Math.abs(u.getTilePosition.getX - p._1) < 3) && (Math.abs(u.getTilePosition.getY - p._2) < 3)})
       })
       .map(p => new TilePosition(p._1, p._2))
   }
 
-  def getBuildTile(game: Game, buildingType: UnitType, builder: ScUnit, searchStartPoint: TilePosition): Option[TilePosition] = {
+  def getBuildTile(game: Game, player: Player, buildingType: UnitType, builder: ScUnit, searchStartPoint: TilePosition): Option[TilePosition] = {
     @tailrec
     def loop(dist: Int, stopDist: Int, skip: Int): Option[TilePosition] = {
-      searchBuildableTile(game, buildingType, builder, searchStartPoint, dist, skip) match {
+      searchBuildableTile(game, player, buildingType, builder, searchStartPoint, dist, skip) match {
         case Some(tile) => Some(tile)
-        case None if dist < stopDist => loop(dist + 2, stopDist, dist)
+        case None if dist < stopDist => loop(dist + 4, stopDist, dist)
         case None => None
       }
     }
@@ -155,7 +153,7 @@ object BehaviourFunctions {
           .find(_.getType.isWorker)
 
         val pair = worker.flatMap(w => {
-          val tile = getBuildTile(game, UnitType.Protoss_Pylon, w, player.getStartLocation)
+          val tile = getBuildTile(game, player, UnitType.Protoss_Pylon, w, player.getStartLocation)
           tile.map(t => (t, w))
         })
         pair.foreach { case (tile: TilePosition, unit: ScUnit) =>
