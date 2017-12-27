@@ -48,6 +48,11 @@ class BWBotListener extends DefaultBWListener {
     trainWorkers(self).unsafePerformIO()
     buildSupplyStructures(game, self).unsafePerformIO()
     orders(self, game)
-
   }
+
+  def packGameState: GameState = ???
+  
+  def unpackGameState: GameState = ???
+
+
 }
