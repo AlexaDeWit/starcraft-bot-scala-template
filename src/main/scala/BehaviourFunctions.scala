@@ -105,8 +105,12 @@ object BehaviourFunctions {
       val workers = player.getUnits.asScala
         .filter(_.getType.isWorker)
         .filter(_.isIdle)
-      val minerals = Random.shuffle(game.neutral.getUnits.asScala.filter(_.getType.isMineralField))
-      (workers zip minerals).foreach{ case (worker, mineral) => worker.gather(mineral)}
+      val minerals = workers.headOption.map(w => game.neutral.getUnits.asScala.filter(_.getType.isMineralField)
+        .map(mineral => (mineral.getDistance(w), mineral))
+        .sortBy(_._1)
+        .map(_._2)
+        .take(9))
+      minerals.map(m => workers zip m).foreach(zipped => zipped.foreach{ case (worker, mineral) => worker.gather(mineral)})
       IO(gameState)
     })
   }
