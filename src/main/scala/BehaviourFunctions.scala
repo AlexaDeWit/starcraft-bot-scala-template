@@ -73,20 +73,25 @@ object BehaviourFunctions {
     }
   }
 
-  def workerMine(player: Player, game: Game) = {
-    player.getUnits.asScala
-      .filter(_.getType.isWorker)
-      .filter(_.isIdle)
-      .foreach { worker =>
-        val closestMineral = game.neutral.getUnits.asScala
-          .filter(_.getType.isMineralField)
-          .map(mineral => (mineral.getDistance(worker), mineral))
-          .sortBy(_._1)
-          .map(_._2)
-          .headOption
+  def workerMine: Kleisli[IO, GameState, GameState] = {
+    Kleisli( gameState => {
+      val player = gameState.player
+      val game = gameState.game
+      player.getUnits.asScala
+        .filter(_.getType.isWorker)
+        .filter(_.isIdle)
+        .foreach { worker =>
+          val closestMineral = game.neutral.getUnits.asScala
+            .filter(_.getType.isMineralField)
+            .map(mineral => (mineral.getDistance(worker), mineral))
+            .sortBy(_._1)
+            .map(_._2)
+            .headOption
 
-        closestMineral.foreach(worker.gather)
-      }
+          closestMineral.foreach(worker.gather)
+        }
+      IO(gameState)
+    })
   }
 
   def searchBuildableTile(game: Game, buildingType: UnitType, builder: ScUnit, searchStartPoint: TilePosition, maxDist: Int, skip: Int): Option[TilePosition] = {

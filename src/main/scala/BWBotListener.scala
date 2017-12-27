@@ -52,7 +52,8 @@ class BWBotListener extends DefaultBWListener {
     //Kleislis
     withPackedGameState(List(
       buildSupplyStructures,
-      trainWorkers
+      trainWorkers,
+      workerMine
     ))
   }
 
