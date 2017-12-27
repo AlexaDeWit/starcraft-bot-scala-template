@@ -51,14 +51,12 @@ class BWBotListener extends DefaultBWListener {
 
     //Kleislis
     withPackedGameState(List(
-
+      buildSupplyStructures,
+      trainWorkers
     ))
-    trainWorkers(self).unsafePerformIO()
-    buildSupplyStructures(game, self).unsafePerformIO()
-    orders(self, game)
   }
 
-  def withPackedGameState(actions: List[Kleisli[IO, GameState, GameState]]): GameState = {
+  def withPackedGameState(actions: List[Kleisli[IO, GameState, GameState]]): Unit = {
     val initial = IO(GameState(self, game, builders))
     val result = actions.foldRight(initial)((kl, gs) => kl =<< gs )
     unpackGameState(result)

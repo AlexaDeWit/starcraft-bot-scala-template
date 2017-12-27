@@ -14,9 +14,10 @@ object BehaviourFunctions {
 
   def isNonCombatUnit(unit: ScUnit): Boolean = unit.getType.isWorker || unit.getType.isBuilding
 
-  def trainWorkers(player: Player): IO[Int] = {
-    IO({
-      val maxWorkers = 15 * player.getUnits.asScala.count(_.getType == UnitType.Protoss_Nexus)
+  def trainWorkers: Kleisli[IO, GameState, GameState] = {
+    Kleisli( gameState => {
+      val player = gameState.player
+      val maxWorkers = 150 * player.getUnits.asScala.count(_.getType == UnitType.Protoss_Nexus)
       val workerCount = getWorkers(player).size
       val targetWorkers = maxWorkers - workerCount
       val potentialWorkers = player.minerals / 50
@@ -30,20 +31,8 @@ object BehaviourFunctions {
           u.train(UnitType.Protoss_Probe)
           i + 1
         })
+      IO(gameState)
     })
-  }
-
-  def orders(player: Player, game: Game): Unit = {
-
-    //Unit Orders
-
-    //Workers
-    trainWorkers(player).unsafePerformIO()
-    workerMine(player, game)
-
-    buildingPrioritizing(player, game, List())
-    buildArmy(player, game)
-
   }
 
   def buildArmy(player: Player, game: Game): Unit = {
@@ -144,8 +133,10 @@ object BehaviourFunctions {
     }
   }
 
-  def buildSupplyStructures(game: Game, player: Player): IO[Unit] = {
-    IO({
+  def buildSupplyStructures: Kleisli[IO, GameState, GameState] = {
+    Kleisli(gameState => {
+      val player = gameState.player
+      val game = gameState.game
       if ((player.supplyTotal() - player.supplyUsed() < 2) && player.minerals() >= 100) {
         val worker = player
           .getUnits
@@ -161,6 +152,7 @@ object BehaviourFunctions {
           unit.build(UnitType.Protoss_Pylon, tile)
         }
       }
+      IO(gameState)
     })
   }
 
