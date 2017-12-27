@@ -14,6 +14,7 @@ object BWBotListener {
 }
 
 class BWBotListener extends DefaultBWListener {
+  val TILE_SIZE = 32
   val mirror = new Mirror()
   var game: Game = _
   var self: Player = _
@@ -22,6 +23,44 @@ class BWBotListener extends DefaultBWListener {
   def run(): Unit = {
     mirror.getModule.setEventListener(this)
     mirror.startGame()
+  }
+
+  def drawTerrainData(game: Game) = {
+    val baseLocations = BWTA.getBaseLocations.asScala
+    baseLocations.foreach(base => {
+      val position = base.getTilePosition
+      val leftTop = new Position(position.getX * TILE_SIZE, position.getY * TILE_SIZE)
+      val rightBottom = new Position(leftTop.getX + 4 * TILE_SIZE, leftTop.getY + 3 * TILE_SIZE)
+      game.drawBoxMap(leftTop, rightBottom, Color.Blue)
+
+      base.getStaticMinerals.asScala.foreach( mineral =>
+        game.drawCircleMap(mineral.getInitialPosition, 30, Color.Cyan)
+      )
+
+      base.getGeysers.asScala.foreach(geyser => {
+        val p = geyser.getInitialTilePosition
+        val tl = new Position(p.getX * TILE_SIZE, p.getY * TILE_SIZE)
+        val br = new Position(tl.getX + 4 * TILE_SIZE, tl.getY + 2 * TILE_SIZE)
+        game.drawBoxMap(tl, br, Color.Orange)
+      })
+
+      if(base.isIsland) game.drawCircleMap(base.getPosition, 80, Color.Yellow)
+
+      BWTA.getRegions.asScala.foreach(region => {
+        val points = region.getPolygon.getPoints.asScala
+        val items = points zip points.drop(1)
+        for( (f, s) <- items ){
+          game.drawLineMap(f, s, Color.Green)
+        }
+
+        region.getChokepoints.asScala.foreach(choke => {
+          val p1 = choke.getSides.first
+          val p2 = choke.getSides.second
+          game.drawLineMap(p1, p2, Color.Red)
+        })
+      })
+
+    })
   }
 
   override def onUnitCreate(unit: ScUnit): Unit = {
