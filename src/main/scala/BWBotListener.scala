@@ -45,21 +45,19 @@ class BWBotListener extends DefaultBWListener {
       })
 
       if(base.isIsland) game.drawCircleMap(base.getPosition, 80, Color.Yellow)
+    })
+    BWTA.getRegions.asScala.foreach(region => {
+      val points = region.getPolygon.getPoints.asScala
+      val items = points zip points.drop(1)
+      for( (f, s) <- items ){
+        game.drawLineMap(f, s, Color.Green)
+      }
 
-      BWTA.getRegions.asScala.foreach(region => {
-        val points = region.getPolygon.getPoints.asScala
-        val items = points zip points.drop(1)
-        for( (f, s) <- items ){
-          game.drawLineMap(f, s, Color.Green)
-        }
-
-        region.getChokepoints.asScala.foreach(choke => {
-          val p1 = choke.getSides.first
-          val p2 = choke.getSides.second
-          game.drawLineMap(p1, p2, Color.Red)
-        })
+      region.getChokepoints.asScala.foreach(choke => {
+        val p1 = choke.getSides.first
+        val p2 = choke.getSides.second
+        game.drawLineMap(p1, p2, Color.Red)
       })
-
     })
   }
 
