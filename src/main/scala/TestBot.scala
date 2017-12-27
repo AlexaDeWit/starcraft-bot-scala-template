@@ -39,16 +39,53 @@ class TestBot extends DefaultBWListener {
 
     System.out.println("Map data ready")
   }
+  def orders(player: Player, game: Game): Unit = {
 
-  override def onFrame(): Unit = {
-    //game.setTextSize(10);
-    game.drawTextScreen(10, 10, "Playing as " + self.getName + " - " + self.getRace)
-    self.getUnits.asScala.filter(u => !isNonCombatUnit(u))
+    //Unit Orders
 
+    //Workers
     trainWorkers(self).unsafePerformIO()
-    buildSupplyStructures(game, self).unsafePerformIO()
+    workerMine(player, game)
 
-    self.getUnits.asScala
+    buildingPrioritizing(player, game, List())
+    buildArmy(player, game)
+
+  }
+
+  def buildArmy(player: Player, game: Game): Unit = {
+    if (player.getUnits.asScala.count(isArmyUnit) < 200) {
+      trainUnit(UnitType.Terran_Barracks, UnitType.Terran_Marine)
+    }
+  }
+
+  def getMyWorkers: List[ScUnit] = ???
+
+  def designateABuilder(i: Int) = ???
+
+  def buildStructure(game: Game, player: Player, unitType: UnitType) = ???
+
+  def trainUnit(unitType: UnitType, unitType1: UnitType) = ???
+
+  def isArmyUnit(unit: ScUnit) = !(unit.getType.isWorker || unit.getType.isBuilding || unit.getType.isNeutral || unit.getType.isAddon)
+
+
+  def buildingPrioritizing(player: Player, game: Game, builders: List[ScUnit]): Unit = {
+    if (builders.isEmpty) {
+      designateABuilder(1)
+    } else if (builders.size == 1 && getMyWorkers.size == 10) {
+      designateABuilder(2)
+    }
+    val units = player.getUnits.asScala
+
+    if (player.supplyTotal() - player.supplyUsed() <= 4) {
+      buildStructure(game, player, UnitType.Protoss_Pylon)
+    } else if (units.count(_.getType == UnitType.Protoss_Gateway) < 4) {
+      buildStructure(game, player, UnitType.Protoss_Gateway)
+    }
+  }
+
+  def workerMine(player: Player, game: Game) = {
+    player.getUnits.asScala
       .filter(_.getType.isWorker)
       .filter(_.isIdle)
       .foreach { worker =>
@@ -61,5 +98,15 @@ class TestBot extends DefaultBWListener {
 
         closestMineral.foreach(worker.gather)
       }
+  }
+  override def onFrame(): Unit = {
+    //game.setTextSize(10);
+    game.drawTextScreen(10, 10, "Playing as " + self.getName + " - " + self.getRace)
+    self.getUnits.asScala.filter(u => !isNonCombatUnit(u))
+
+    trainWorkers(self).unsafePerformIO()
+    buildSupplyStructures(game, self).unsafePerformIO()
+    orders(self, game)
+
   }
 }

@@ -41,6 +41,7 @@ object BehaviourFunctions {
       y <- ys
     } yield (x, y)
     val ps = Random.shuffle(nrps).toList
+    println(ps)
     ps.filter(p => game.canBuildHere(new TilePosition(p._1, p._2), buildingType, builder, false))
       .find( p => {
         !game.getAllUnits.asScala.toList.any( (u: ScUnit) => {
