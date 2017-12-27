@@ -32,6 +32,7 @@ object BehaviourFunctions {
         })
     })
   }
+
   def orders(player: Player, game: Game): Unit = {
 
     //Unit Orders
@@ -53,9 +54,19 @@ object BehaviourFunctions {
 
   def getMyWorkers(player: Player): List[ScUnit] = player.getUnits.asScala.filter(_.getType.isWorker).toList
 
-  def designateABuilder(i: Int) = ???
+  def designateABuilder: Option[ScUnit] = ???
 
-  def buildStructure(game: Game, player: Player, unitType: UnitType) = ???
+  def buildStructure(game: Game, player: Player, buildingType: UnitType) = IO({
+    val worker = designateABuilder
+    val pair = worker.flatMap(w => {
+      val tile = getBuildTile(game, buildingType, w, player.getStartLocation)
+      if (tile.isDefined) System.out.println("Target tile found")
+      tile.map(t => (t, w))
+    })
+    pair.foreach { case (tile: TilePosition, unit: ScUnit) =>
+      unit.build(buildingType, tile)
+    }
+  })
 
   def trainUnit(player: Player, structure: UnitType, unit: UnitType) =
     player.getUnits.asScala.filter(_.getType == UnitType.Protoss_Gateway).filter(_.isIdle).foreach(s => s.train(unit))
@@ -64,11 +75,6 @@ object BehaviourFunctions {
 
 
   def buildingPrioritizing(player: Player, game: Game, builders: List[ScUnit]): Unit = {
-    if (builders.isEmpty) {
-      designateABuilder(1)
-    } else if (builders.size == 1 && getMyWorkers(player).size == 10) {
-      designateABuilder(2)
-    }
     val units = player.getUnits.asScala
 
     if (player.supplyTotal() - player.supplyUsed() <= 4) {
@@ -93,6 +99,7 @@ object BehaviourFunctions {
         closestMineral.foreach(worker.gather)
       }
   }
+
   def searchBuildableTile(game: Game, buildingType: UnitType, builder: ScUnit, searchStartPoint: TilePosition, maxDist: Int, skip: Int): Option[TilePosition] = {
     val xs = Range(searchStartPoint.getX - skip, searchStartPoint.getX - maxDist) ++ Range(searchStartPoint.getX + skip, searchStartPoint.getX + maxDist)
     val ys = Range(searchStartPoint.getY - skip, searchStartPoint.getY - maxDist) ++ Range(searchStartPoint.getY + skip, searchStartPoint.getY + maxDist)
@@ -103,8 +110,8 @@ object BehaviourFunctions {
     val ps = Random.shuffle(nrps).toList
     println(ps)
     ps.filter(p => game.canBuildHere(new TilePosition(p._1, p._2), buildingType, builder, false))
-      .find( p => {
-        !game.getAllUnits.asScala.toList.any( (u: ScUnit) => {
+      .find(p => {
+        !game.getAllUnits.asScala.toList.any((u: ScUnit) => {
           (u.getID != builder.getID) && (Math.abs(u.getTilePosition.getX - p._1) < 3) && (Math.abs(u.getTilePosition.getY - p._2) < 3)
         })
       })
@@ -120,9 +127,10 @@ object BehaviourFunctions {
         case None => None
       }
     }
+
     val maxDist = 6
     val stopDist = 40
-    if(buildingType.isRefinery) {
+    if (buildingType.isRefinery) {
       game
         .neutral()
         .getUnits
@@ -138,7 +146,7 @@ object BehaviourFunctions {
 
   def buildSupplyStructures(game: Game, player: Player): IO[Unit] = {
     IO({
-      if((player.supplyTotal() - player.supplyUsed() < 2) && player.minerals() >= 100) {
+      if ((player.supplyTotal() - player.supplyUsed() < 2) && player.minerals() >= 100) {
         val worker = player
           .getUnits
           .asScala
@@ -146,10 +154,10 @@ object BehaviourFunctions {
 
         val pair = worker.flatMap(w => {
           val tile = getBuildTile(game, UnitType.Protoss_Pylon, w, player.getStartLocation)
-          if(tile.isDefined) System.out.println("Target tile found")
+          if (tile.isDefined) System.out.println("Target tile found")
           tile.map(t => (t, w))
         })
-        pair.foreach{ case (tile: TilePosition, unit: ScUnit) =>
+        pair.foreach { case (tile: TilePosition, unit: ScUnit) =>
           unit.build(UnitType.Protoss_Pylon, tile)
         }
       }
