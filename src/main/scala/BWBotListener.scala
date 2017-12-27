@@ -1,9 +1,12 @@
 import bwapi.{Unit => ScUnit, _}
 import bwta.BWTA
+
 import scalaz._
 import Scalaz._
 import BehaviourFunctions._
+
 import scala.collection.JavaConverters._
+import scalaz.effect.IO
 
 object BWBotListener {
   def main(args: Array[String]): Unit =
@@ -14,6 +17,7 @@ class BWBotListener extends DefaultBWListener {
   val mirror = new Mirror()
   var game: Game = _
   var self: Player = _
+  var builders: List[ScUnit] = List()
 
   def run(): Unit = {
     mirror.getModule.setEventListener(this)
@@ -45,14 +49,25 @@ class BWBotListener extends DefaultBWListener {
     game.drawTextScreen(10, 10, "Playing as " + self.getName + " - " + self.getRace)
     self.getUnits.asScala.filter(u => !isNonCombatUnit(u))
 
+    //Kleislis
+    withPackedGameState(List(
+
+    ))
     trainWorkers(self).unsafePerformIO()
     buildSupplyStructures(game, self).unsafePerformIO()
     orders(self, game)
   }
 
-  def packGameState: GameState = ???
-  
-  def unpackGameState: GameState = ???
+  def withPackedGameState(actions: List[Kleisli[IO, GameState, GameState]]): GameState = {
+    val initial = IO(GameState(self, game, builders))
+    val result = actions.foldRight(initial)((kl, gs) => kl =<< gs )
+    unpackGameState(result)
+  }
+
+  def unpackGameState(state: IO[GameState]): Unit = {
+    val ran = state.unsafePerformIO()
+    builders = ran.designatedBuilders
+  }
 
 
 }
